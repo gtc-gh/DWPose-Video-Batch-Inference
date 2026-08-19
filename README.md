@@ -8,16 +8,11 @@
 
 <br/>
 
-> 📖 **Related Paper & Benchmark**:
+> 📖 **Related Paper**:
 > This repository is utilized as a key whole-body pose estimation tool in the paper:  
 > **["PLNet-12: A Vision-Language Benchmark for Zero-Shot Physical Literacy Analysis Across 12 Fundamental Movements"](https://link.springer.com/chapter/10.1007/978-981-95-4972-6_19)** (*AJCAI 2025*).
 
 <br/>
-
-
-<p align="center">
-  <em>Real-time, whole-body keypoint estimation (17 Body + 6 Feet + 68 Face + 42 Hands) for high-frame-rate videos.</em>
-</p>
 
 <p align="center">
   ⭐ Please give a star if you find this project helpful or use it in your research!
