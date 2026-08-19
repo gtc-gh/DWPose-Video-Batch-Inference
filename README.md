@@ -8,8 +8,19 @@
 
 <br/>
 
+> 📖 **Related Paper & Benchmark**:
+> This repository is utilized as a key whole-body pose estimation tool in the paper:  
+> **["PLNet-12: A Vision-Language Benchmark for Zero-Shot Physical Literacy Analysis Across 12 Fundamental Movements"](https://link.springer.com/chapter/10.1007/978-981-95-4972-6_19)** (*AJCAI 2025*).
+
+<br/>
+
+
 <p align="center">
   <em>Real-time, whole-body keypoint estimation (17 Body + 6 Feet + 68 Face + 42 Hands) for high-frame-rate videos.</em>
+</p>
+
+<p align="center">
+  ⭐ Please give a star if you find this project helpful or use it in your research!
 </p>
 
 </div>
@@ -28,10 +39,10 @@
   - [Python API Usage](#python-api-usage)
 - [⚡ Hardware & Batch Sizing](#-hardware--batch-sizing)
 - [📊 Output Specifications](#-output-specifications)
-  - [1. Pose Sequence (N, 406)](#1-pose-sequence-n-406)
+  - [1. Pose Sequence (N, 406) & Keypoint Visualization](#1-pose-sequence-n-406--keypoint-visualization)
   - [2. Bounding Box (N, 1, 4)](#2-bounding-box-n-1-4)
   - [3. Video Metadata](#3-video-metadata)
-- [📜 License & Acknowledgments](#-license--acknowledgments)
+- [📜 License, Citation & Acknowledgments](#-license-citation--acknowledgments)
 
 ---
 
@@ -80,6 +91,8 @@ flowchart TD
 
 ```
 DWPose-Video-Batch-Inference/
+├── asset/                               # Project documentation assets
+│   └── Fig2_anno.png                    # COCO-WholeBody 133 keypoint topology annotation
 ├── DWPose_usage/                        # DWPose & YOLOX inference package
 │   ├── __init__.py                      # DWProcessor wrapper and skeleton drawing routines
 │   ├── wholebody.py                     # Wholebody detector & pose estimation coordinator
@@ -247,7 +260,7 @@ Optimize memory and GPU throughput by selecting appropriate batch sizes:
 
 ## 📊 Output Specifications
 
-### 1. Pose Sequence `(N, 406)`
+### 1. Pose Sequence `(N, 406)` & Keypoint Visualization
 For each frame $i \in [0, N-1]$, `pose_sequences[i]` is a 406-dimensional vector:
 
 $$\text{Vector Length} = 7 + (133 \times 3) = 406$$
@@ -257,29 +270,43 @@ Index:  [0 ............. 6] [7 .................................... 405]
 Data :  [ Bounding Box + Score ] [ 133 Keypoints: (x, y, confidence) x 133 ]
 ```
 
+#### 🖼️ COCO-WholeBody 133 Keypoint Topology & Name Reference
+The visual definition and keypoint ID numbering ($1 \sim 133$) are illustrated below:
+
+<p align="center">
+  <img src="asset/Fig2_anno.png" width="92%" alt="COCO-WholeBody 133 Keypoint Visualization and Annotation Scheme" />
+</p>
+<p align="center">
+  <em>Figure: COCO-WholeBody 133 Keypoints Topology, ID mapping (1–133), and corresponding anatomical names.</em>
+</p>
+
+#### 📐 Index Calculation & Format Breakdown
 - **Bounding Box & Score (`Index 0 ~ 6`)**:
   - `[0, 0, x1, y1, x2, y2, score]`
-  - `(x1, y1)`: Top-left coordinate of the detected person bounding box (in pixels).
-  - `(x2, y2)`: Bottom-right coordinate of the detected person bounding box (in pixels).
-  - `score`: Confidence score of the bounding box.
+  - `(x1, y1)`: Top-left corner of the detected person bounding box (pixels).
+  - `(x2, y2)`: Bottom-right corner of the detected person bounding box (pixels).
+  - `score`: Confidence score of the bounding box detection.
 
 - **133 Whole-Body Keypoints (`Index 7 ~ 405`)**:
   - Each keypoint contains `[x_kpt, y_kpt, confidence_score]`.
   - Coordinates `(x_kpt, y_kpt)` are **normalized** to `[0.0, 1.0]` relative to frame width $W$ and height $H$.
   - Conversion to absolute pixel coordinates:
     $$X_{\text{pixel}} = x_{\text{kpt}} \times W, \quad Y_{\text{pixel}} = y_{\text{kpt}} \times H$$
+  - **Index Mapping Formula**: For the $x$-th keypoint shown in the figure above ($x \in [1, 133]$), its corresponding elements in the `pose_sequences` array (0-indexed) are:
+    $$\text{X-coordinate: } 3x + 4, \quad \text{Y-coordinate: } 3x + 5, \quad \text{Confidence Score: } 3x + 6$$
+    *(e.g., Keypoint 1: Nose $\rightarrow$ indices `[7, 8, 9]`; Keypoint 133: Right Hand Tip $\rightarrow$ indices `[403, 404, 405]`)*
 
 <details>
-<summary><b>🔍 Click to view Keypoint Index Partitions & COCO-WholeBody Mapping</b></summary>
+<summary><b>🔍 Click to view Keypoint Index Partitions & COCO-WholeBody Group Mapping</b></summary>
 
-| Keypoint Group | Keypoint Count | Array Index Range | Details |
-| :--- | :---: | :---: | :--- |
-| **Body Joints** | 17 | `7` ~ `57` | Nose, eyes, ears, shoulders, elbows, wrists, hips, knees, ankles |
-| **Foot Points** | 6 | `58` ~ `75` | Big toe, small toe, heel (left & right) |
-| **Face Landmarks** | 68 | `76` ~ `279` | Contour, eyebrows, nasal bridge, nose, eyes, mouth |
-| **Hand Keypoints** | 42 | `280` ~ `405` | 21 keypoints for left hand + 21 keypoints for right hand |
+| Keypoint Group | Keypoint IDs in Figure | Keypoint Count | Array Index Range | Details / Keypoint Names |
+| :--- | :---: | :---: | :---: | :--- |
+| **Body Joints** | $1 \sim 17$ | 17 | `7` ~ `57` | Nose (1), Eyes (2,3), Ears (4,5), Shoulders (6,7), Elbows (8,9), Wrists (10,11), Hips (12,13), Knees (14,15), Ankles (16,17) |
+| **Foot Points** | $18 \sim 23$ | 6 | `58` ~ `75` | Big toe, small toe, heel for left and right feet |
+| **Face Landmarks** | $24 \sim 91$ | 68 | `76` ~ `279` | Face contour, eyebrows, nasal bridge, nose tip, eyes, and inner/outer lips |
+| **Hand Keypoints** | $92 \sim 133$ | 42 | `280` ~ `405` | 21 keypoints for left hand ($92 \sim 112$) + 21 keypoints for right hand ($113 \sim 133$) |
 
-For topology diagrams and details, refer to the [COCO-WholeBody Dataset Specification](https://github.com/jin-s13/COCO-WholeBody).
+For additional topology details, refer to the [COCO-WholeBody Dataset Specification](https://github.com/jin-s13/COCO-WholeBody).
 </details>
 
 ---
@@ -303,13 +330,29 @@ For topology diagrams and details, refer to the [COCO-WholeBody Dataset Specific
 
 ---
 
-## 📜 License & Acknowledgments
+## 📜 License, Citation & Acknowledgments
 
 This project is released under the Apache 2.0 License.
 
+### 📚 Citation
+If you find this repository or tool helpful in your research, please consider citing:
+
+```bibtex
+@inproceedings{guo2025plnet,
+  title={Plnet-12: A vision-language benchmark for zero-shot physical literacy analysis across 12 fundamental movements},
+  author={Guo, Tianchen and Logan, Peter Anthony and Wackwitz, Thomas and Martin, David},
+  booktitle={Australasian Joint Conference on Artificial Intelligence},
+  pages={242--254},
+  year={2025},
+  organization={Springer}
+}
+```
+
+### 🙏 Acknowledgments
 Special thanks and acknowledgment to the underlying open-source projects:
 - [DWPose](https://github.com/IDEA-Research/DWPose) / [Effective Whole-body Pose Estimation with Two-stage Distillation](https://arxiv.org/abs/2307.15880)
 - [MMPose](https://github.com/open-mmlab/mmpose) & [MMDetection](https://github.com/open-mmlab/mmdetection) by OpenMMLab
 - [COCO-WholeBody](https://github.com/jin-s13/COCO-WholeBody)
+
 
 
